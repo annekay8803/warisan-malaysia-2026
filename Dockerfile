@@ -1,3 +1,17 @@
+
+# Stage 1: Build frontend assets
+FROM node:22-alpine AS frontend
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+
+# Stage 2: Build Laravel application
 FROM php:8.3-cli
 
 RUN apt-get update \
@@ -8,7 +22,11 @@ RUN apt-get update \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
+
 COPY . .
+
+# Copy compiled CSS and JavaScript from frontend stage
+COPY --from=frontend /app/public/build ./public/build
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
  && touch database/database.sqlite \
